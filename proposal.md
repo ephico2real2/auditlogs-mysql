@@ -64,3 +64,122 @@ Deploy the application as described earlier.
 - **Error Handling**: Add proper error handling for database operations and file reading.
 
 This script and process would need to be run regularly if new JSON files are being generated continually. You might set up a cron job to execute the script at intervals or trigger the script to run after a new file is created, depending on your infrastructure.
+
+
+
+Certainly! Below are examples of code snippets for setting up an Express.js backend and a simple frontend web page that interacts with it.
+
+### Step 4: Set Up an Express.js Backend
+
+First, you'll need to have Node.js and npm installed. Then you can set up your project with the following commands:
+
+```bash
+mkdir my-audit-app
+cd my-audit-app
+npm init -y
+npm install express mysql body-parser cors --save
+```
+
+Here's a simple Express.js server (`server.js`):
+
+```javascript
+const express = require('express');
+const mysql = require('mysql');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+const app = express();
+const port = 3000;
+
+// Middlewares
+app.use(cors());
+app.use(bodyParser.json());
+
+// MySQL connection
+const pool = mysql.createPool({
+  connectionLimit: 10,
+  host: 'localhost',
+  user: 'yourUsername',
+  password: 'yourPassword',
+  database: 'yourDatabase'
+});
+
+// API endpoint to get audit logs
+app.get('/api/audit-logs', (req, res) => {
+  pool.query('SELECT * FROM audit_logs', (error, results) => {
+    if (error) return res.status(500).send('Server error');
+    res.json(results);
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
+```
+
+### Step 5: Create the Frontend Web Page
+
+Create a new file called `index.html` in the `public` directory of your Express application:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Logs</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Audit Logs</h1>
+    <table id="logs-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Resource</th>
+                <th>Verb</th>
+                <th>Resource Type</th>
+                <th>Namespace</th>
+                <th>User ID</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Logs will be inserted here -->
+        </tbody>
+    </table>
+
+    <script>
+        fetch('http://localhost:3000/api/audit-logs')
+            .then(response => response.json())
+            .then(logs => {
+                const tableBody = document.querySelector('#logs-table tbody');
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${log.id}</td>
+                        <td>${log.resource}</td>
+                        <td>${log.verb}</td>
+                        <td>${log.resource_type}</td>
+                        <td>${log.namespace}</td>
+                        <td>${log.user_id}</td>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
+</body>
+</html>
+```
+
+Remember to replace `'yourUsername'`, `'yourPassword'`, and `'yourDatabase'` with your actual MySQL database credentials. 
+
+To run the server, you would typically execute `node server.js` in your terminal. The frontend page will make requests to the backend server and display the data in a simple table.
+
+This is a basic example to get you started, and there are many ways to expand upon this for a more robust application. For example, you may want to add pagination, filtering, and sorting for your audit logs table, as well as security measures such as authentication.
