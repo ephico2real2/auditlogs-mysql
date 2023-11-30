@@ -183,3 +183,123 @@ Remember to replace `'yourUsername'`, `'yourPassword'`, and `'yourDatabase'` wit
 To run the server, you would typically execute `node server.js` in your terminal. The frontend page will make requests to the backend server and display the data in a simple table.
 
 This is a basic example to get you started, and there are many ways to expand upon this for a more robust application. For example, you may want to add pagination, filtering, and sorting for your audit logs table, as well as security measures such as authentication.
+
+
+Sure, let's improve both the backend and the frontend with better practices and features.
+
+### Improved Backend with Express.js
+
+Improvements include error handling, environment variable configuration, and the use of async/await for database queries.
+
+First, install `dotenv` to manage environment variables:
+```bash
+npm install dotenv --save
+```
+
+Create a `.env` file in your project's root directory to store your environment variables:
+```plaintext
+DB_HOST=localhost
+DB_USER=yourUsername
+DB_PASS=yourPassword
+DB_NAME=yourDatabase
+PORT=3000
+```
+
+Update your `server.js` file with the following improved code:
+
+```javascript
+require('dotenv').config();
+const express = require('express');
+const mysql = require('mysql');
+const app = express();
+const port = process.env.PORT || 3000;
+
+// MySQL pool for better performance
+const pool = mysql.createPool({
+  connectionLimit: 10,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
+});
+
+// Promisify for Node.js async/await.
+pool.query = util.promisify(pool.query);
+
+app.use(express.json());
+
+// API endpoint to get audit logs with async/await
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const results = await pool.query('SELECT * FROM audit_logs');
+    res.json(results);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
+```
+
+### Improved Frontend Web Page
+
+For the frontend, let's add error handling and a message when there are no logs to display.
+
+Update your `index.html` with the following improvements:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Logs</title>
+    <style>
+        /* Add styles for better presentation and responsiveness */
+    </style>
+</head>
+<body>
+    <h1>Audit Logs</h1>
+    <div id="logs-container">
+        <table id="logs-table">
+            <!-- Table headers -->
+        </table>
+        <div id="message-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchLogs);
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('http://localhost:3000/api/audit-logs');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const logs = await response.json();
+                if (logs.length === 0) {
+                    document.getElementById('message-container').textContent = 'No logs found.';
+                    return;
+                }
+                
+                const tableBody = document.createElement('tbody');
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    // Add table data
+                    tableBody.appendChild(row);
+                });
+                document.getElementById('logs-table').appendChild(tableBody);
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                document.getElementById('message-container').textContent = 'Failed to load logs.';
+            }
+        }
+    </script>
+</body>
+</html>
+```
+
+With these improvements, the backend now uses environment variables for configuration, which is a best practice for deployment. The use of async/await makes the code cleaner and easier to read. The frontend now handles errors gracefully and informs the user if no logs are available or if there was an error fetching the logs.
+
+These improvements also set the stage for additional features such as filtering, searching, and pagination, both on the backend and the frontend.
